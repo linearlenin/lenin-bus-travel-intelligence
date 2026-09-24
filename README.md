@@ -6,9 +6,9 @@ assistant for grounded recommendations.
 
 The application is designed for two environments:
 
-- **Live mode:** Playwright attempts to collect listings from the configured
-  online source, then Gemini embeddings and Gemini chat generation power the
-  retrieval and answer layers.
+- **Live mode:** Playwright can collect listings from the configured online
+  source when explicitly enabled, then Gemini embeddings and Gemini chat
+  generation power the retrieval and answer layers.
 - **Demo/offline mode:** A deterministic, route-aware fallback dataset keeps
   the application runnable when the source is unavailable, credentials are not
   configured, or an internet request times out.
@@ -168,6 +168,17 @@ The fallback logic estimates road distance using known Indian city
 coordinates. It derives realistic durations and fares from distance, so
 Chennai → Vellore and Chennai → Kochi do not show the same inventory.
 Chennai → Bangalore retains a curated demo dataset suitable for evaluation.
+
+Live browser scraping is disabled by default because Streamlit Cloud does not
+provide a Playwright browser binary automatically. To enable it on a machine
+where Chromium is installed, set:
+
+```env
+ENABLE_LIVE_SCRAPER=true
+```
+
+If live scraping is disabled or unavailable, the application safely uses the
+route-aware fallback instead of crashing.
 
 ### 2. `src/prepare_data.py`
 

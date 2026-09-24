@@ -69,46 +69,50 @@ def fallback_buses(source: str, destination: str) -> List[Dict[str, str]]:
 
 
 async def scrape_bus_data(source: str = "Chennai", destination: str = "Bangalore") -> int:
-    """Attempt a RedBus extraction and fall back when the source is unavailable."""
+    """Collect listings, using live Playwright only when explicitly enabled."""
     os.makedirs(DATA_DIR, exist_ok=True)
     rows: List[Dict[str, str]] = []
 
-    try:
-        from playwright.async_api import Error as PlaywrightError
-        from playwright.async_api import TimeoutError as PlaywrightTimeoutError
-        from playwright.async_api import async_playwright
-    except ImportError:
-        print("Playwright is not installed; using fallback inventory.")
-    else:
-        async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(headless=True)
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36"
-            )
-            page = await context.new_page()
+    if os.getenv("ENABLE_LIVE_SCRAPER", "").casefold() == "true":
+        try:
+            from playwright.async_api import Error as PlaywrightError
+            from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+            from playwright.async_api import async_playwright
+        except ImportError:
+            print("Playwright is not installed; using route-aware fallback inventory.")
+        else:
             try:
-                target_url = f"https://www.redbus.in/bus-tickets/{source.lower()}-to-{destination.lower()}"
-                await page.goto(target_url, timeout=20_000, wait_until="domcontentloaded")
-                await page.wait_for_selector(".bus-item", timeout=5_000)
-                for card in await page.query_selector_all(".bus-item"):
-                    name = await card.query_selector(".travels")
-                    fare = await card.query_selector(".fare span")
-                    departure = await card.query_selector(".dp-time")
-                    if name and fare and departure:
-                        rows.append(
-                            {
-                                "operator": (await name.inner_text()).strip(),
-                                "route": f"{source} to {destination}",
-                                "departure": (await departure.inner_text()).strip(),
-                                "duration": "6h 30m",
-                                "seat_type": "AC Sleeper",
-                                "price": (await fare.inner_text()).strip(),
-                            }
+                async with async_playwright() as playwright:
+                    browser = await playwright.chromium.launch(headless=True)
+                    try:
+                        context = await browser.new_context(
+                            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36"
                         )
+                        page = await context.new_page()
+                        target_url = f"https://www.redbus.in/bus-tickets/{source.lower()}-to-{destination.lower()}"
+                        await page.goto(target_url, timeout=20_000, wait_until="domcontentloaded")
+                        await page.wait_for_selector(".bus-item", timeout=5_000)
+                        for card in await page.query_selector_all(".bus-item"):
+                            name = await card.query_selector(".travels")
+                            fare = await card.query_selector(".fare span")
+                            departure = await card.query_selector(".dp-time")
+                            if name and fare and departure:
+                                rows.append(
+                                    {
+                                        "operator": (await name.inner_text()).strip(),
+                                        "route": f"{source} to {destination}",
+                                        "departure": (await departure.inner_text()).strip(),
+                                        "duration": "6h 30m",
+                                        "seat_type": "AC Sleeper",
+                                        "price": (await fare.inner_text()).strip(),
+                                    }
+                                )
+                    finally:
+                        await browser.close()
             except (PlaywrightTimeoutError, PlaywrightError) as error:
                 print(f"Live source unavailable ({error.__class__.__name__}); using fallback inventory.")
-            finally:
-                await browser.close()
+    else:
+        print("Live scraper disabled; using route-aware fallback inventory.")
 
     dataset = rows or fallback_buses(source, destination)
     with open(CSV_PATH, "w", newline="", encoding="utf-8") as output:
