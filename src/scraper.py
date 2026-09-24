@@ -3,6 +3,7 @@
 import csv
 import math
 import os
+import zlib
 from typing import Dict, List, Tuple
 
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
@@ -46,14 +47,28 @@ def fallback_buses(source: str, destination: str) -> List[Dict[str, str]]:
         ]
 
     distance = _road_distance_km(source, destination)
-    base_hours = max(2.0, distance / 52)
-    operators = ["InterCity Express", "National Travels", "CityLink Bus", "Highway Connect", "State Roadways", "ComfortRide", "RapidRoute"]
-    seats = ["AC Sleeper", "AC Seater", "Non-AC Sleeper", "AC Sleeper", "Non-AC Seater", "AC Semi-Sleeper", "AC Seater"]
-    prices = [max(250, int(distance * rate / 10) * 10) for rate in (2.0, 1.7, 1.35, 2.5, 1.1, 1.85, 2.2)]
-    departures = ["06:30", "09:15", "18:00", "20:30", "21:45", "22:30", "23:15"]
+    route_seed = zlib.crc32(f"{source.casefold()}:{destination.casefold()}".encode())
+    base_hours = max(2.0, distance / 52) + (route_seed % 25) / 100
+    south_cities = {"chennai", "bangalore", "bengaluru", "coimbatore", "madurai", "vellore", "kochi", "hyderabad"}
+    west_cities = {"mumbai", "bombay", "pune", "goa", "ahmedabad"}
+    if source.casefold() in south_cities or destination.casefold() in south_cities:
+        operator_pool = ["KPN Travels", "SRS Travels", "IntrCity SmartBus", "Orange Travels", "VRL Travels", "SETC Express", "Parveen Travels"]
+    elif source.casefold() in west_cities or destination.casefold() in west_cities:
+        operator_pool = ["Neeta Travels", "MSRTC Express", "VRL Travels", "Gujarat Travels", "Purple Bus", "IntrCity SmartBus", "Sharma Transports"]
+    else:
+        operator_pool = ["RSRTC Roadways", "Rajdhani Travels", "ZingBus", "UPSRTC Express", "IntrCity SmartBus", "National Travels", "Highway King"]
+    offset = route_seed % len(operator_pool)
+    operators = [operator_pool[(index + offset) % len(operator_pool)] for index in range(7)]
+    seat_pool = ["AC Sleeper", "AC Seater", "Non-AC Sleeper", "AC Semi-Sleeper", "Non-AC Seater"]
+    seats = [seat_pool[(index + route_seed) % len(seat_pool)] for index in range(7)]
+    rates = [2.0, 1.7, 1.35, 2.5, 1.1, 1.85, 2.2]
+    prices = [max(250, int(distance * rate / 10) * 10) for rate in rates]
+    departure_pool = ["05:45", "07:30", "10:15", "18:20", "20:45", "22:10", "23:35"]
+    departure_offset = route_seed % len(departure_pool)
+    departures = [departure_pool[(index + departure_offset) % len(departure_pool)] for index in range(7)]
     rows = []
     for index in range(7):
-        minutes = int((base_hours + (index % 3) * 0.35) * 60)
+        minutes = int((base_hours + ((route_seed >> (index % 8)) % 5) * 0.18) * 60)
         rows.append(
             {
                 "operator": operators[index],
