@@ -13,6 +13,8 @@ CSV_PATH = os.path.join(DATA_DIR, "bus_raw.csv")
 CITY_COORDINATES: Dict[str, Tuple[float, float]] = {
     "bangalore": (12.97, 77.59), "bengaluru": (12.97, 77.59),
     "chennai": (13.08, 80.27), "coimbatore": (11.02, 76.96),
+    "trichy": (10.79, 78.70), "tiruchirappalli": (10.79, 78.70),
+    "namakkal": (11.22, 78.17), "namakal": (11.22, 78.17),
     "vellore": (12.92, 79.13), "kochi": (9.93, 76.27),
     "hyderabad": (17.39, 78.49), "pune": (18.52, 73.86),
     "mumbai": (19.08, 72.88), "bombay": (19.08, 72.88),
@@ -49,7 +51,11 @@ def fallback_buses(source: str, destination: str) -> List[Dict[str, str]]:
     distance = _road_distance_km(source, destination)
     route_seed = zlib.crc32(f"{source.casefold()}:{destination.casefold()}".encode())
     base_hours = max(2.0, distance / 52) + (route_seed % 25) / 100
-    south_cities = {"chennai", "bangalore", "bengaluru", "coimbatore", "madurai", "vellore", "kochi", "hyderabad"}
+    south_cities = {
+        "chennai", "bangalore", "bengaluru", "coimbatore", "madurai",
+        "vellore", "kochi", "hyderabad", "trichy", "tiruchirappalli",
+        "namakkal", "namakal",
+    }
     west_cities = {"mumbai", "bombay", "pune", "goa", "ahmedabad"}
     if source.casefold() in south_cities or destination.casefold() in south_cities:
         operator_pool = ["KPN Travels", "SRS Travels", "IntrCity SmartBus", "Orange Travels", "VRL Travels", "SETC Express", "Parveen Travels"]

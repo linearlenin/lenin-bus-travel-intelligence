@@ -15,6 +15,7 @@ from src.scraper import scrape_bus_data
 DATA_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "bus_cleaned.csv"))
 
 st.set_page_config(page_title="Intercity Bus Intelligence", page_icon="🚌", layout="wide")
+st.caption("Build: route-aware-v4")
 st.markdown(
     """
     <style>
