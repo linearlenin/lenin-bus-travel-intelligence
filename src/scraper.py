@@ -68,12 +68,21 @@ def fallback_buses(source: str, destination: str) -> List[Dict[str, str]]:
     return rows
 
 
-async def scrape_bus_data(source: str = "Chennai", destination: str = "Bangalore") -> int:
+async def scrape_bus_data(
+    source: str = "Chennai",
+    destination: str = "Bangalore",
+    enable_live: bool | None = None,
+) -> int:
     """Collect listings, using live Playwright only when explicitly enabled."""
     os.makedirs(DATA_DIR, exist_ok=True)
     rows: List[Dict[str, str]] = []
 
-    if os.getenv("ENABLE_LIVE_SCRAPER", "").casefold() == "true":
+    use_live_scraper = (
+        os.getenv("ENABLE_LIVE_SCRAPER", "").casefold() == "true"
+        if enable_live is None
+        else enable_live
+    )
+    if use_live_scraper:
         try:
             from playwright.async_api import Error as PlaywrightError
             from playwright.async_api import TimeoutError as PlaywrightTimeoutError
