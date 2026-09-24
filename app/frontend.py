@@ -120,7 +120,8 @@ if refresh_route:
     else:
         route = f"{source} to {destination}"
         with st.spinner(f"Finding buses from {source} to {destination}..."):
-            asyncio.run(scrape_bus_data(source, destination, enable_live=False))
+            os.environ["ENABLE_LIVE_SCRAPER"] = "false"
+            asyncio.run(scrape_bus_data(source, destination))
             run_pipeline()
             if os.getenv("GEMINI_API_KEY"):
                 build_vector_store()
