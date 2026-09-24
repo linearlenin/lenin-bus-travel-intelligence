@@ -77,11 +77,10 @@ async def scrape_bus_data(
     os.makedirs(DATA_DIR, exist_ok=True)
     rows: List[Dict[str, str]] = []
 
-    use_live_scraper = (
-        os.getenv("ENABLE_LIVE_SCRAPER", "").casefold() == "true"
-        if enable_live is None
-        else enable_live
-    )
+    # The deployed Streamlit app must not require a browser binary. Live
+    # extraction can be added behind a separate worker when deployment support
+    # for Playwright is available.
+    use_live_scraper = False
     if use_live_scraper:
         try:
             from playwright.async_api import Error as PlaywrightError
