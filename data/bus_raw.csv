@@ -1,8 +1,8 @@
 operator,route,departure,duration,seat_type,price
-KPN Travels,Chennai to Bangalore,21:30,6h 30m,AC Sleeper,₹750
-IntrCity SmartBus,Chennai to Bangalore,22:15,5h 45m,AC Seater,₹599
-SRS Travels,Chennai to Bangalore,20:00,7h 00m,Non-AC Sleeper,₹499
-GreenLine Travels,Chennai to Bangalore,23:00,6h 00m,AC Sleeper,₹999
-SETC Express,Chennai to Bangalore,19:30,7h 30m,Ultra Deluxe Non-AC,₹420
-Jabbar Travels,Chennai to Bangalore,06:00,6h 15m,AC Semi-Sleeper,₹650
-Asian Xpress,Chennai to Bangalore,14:00,6h 00m,AC Sleeper,₹850
+InterCity Express,Madurai to Bangalore,06:30,6h 43m,AC Sleeper,₹700
+National Travels,Madurai to Bangalore,09:15,7h 04m,AC Seater,₹590
+CityLink Bus,Madurai to Bangalore,18:00,7h 25m,Non-AC Sleeper,₹470
+Highway Connect,Madurai to Bangalore,20:30,6h 43m,AC Sleeper,₹870
+State Roadways,Madurai to Bangalore,21:45,7h 04m,Non-AC Seater,₹380
+ComfortRide,Madurai to Bangalore,22:30,7h 25m,AC Semi-Sleeper,₹640
+RapidRoute,Madurai to Bangalore,23:15,6h 43m,AC Seater,₹770

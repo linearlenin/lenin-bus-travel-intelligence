@@ -6,12 +6,10 @@ assistant for grounded recommendations.
 
 The application is designed for two environments:
 
-- **Live mode:** Playwright can collect listings from the configured online
-  source when explicitly enabled, then Gemini embeddings and Gemini chat
-  generation power the retrieval and answer layers.
-- **Demo/offline mode:** A deterministic, route-aware fallback dataset keeps
-  the application runnable when the source is unavailable, credentials are not
-  configured, or an internet request times out.
+- **Cloud-safe mode:** A deterministic, route-aware inventory generator keeps
+  the application runnable without requiring a browser binary on Streamlit
+  Cloud. Gemini embeddings and Gemini chat generation power the retrieval and
+  answer layers.
 
 ## Features
 
@@ -39,7 +37,7 @@ The application is designed for two environments:
 User enters From + To
           |
           v
-Playwright live extraction
+Route-aware inventory generation
           |
           +---- source unavailable ----> route-aware fallback inventory
           |
@@ -97,7 +95,6 @@ bus-travel-intelligence/
 | --- | --- |
 | Python | Application and data-pipeline language |
 | Streamlit | Interactive dashboard and chat interface |
-| Playwright | Browser automation and live listing extraction |
 | pandas | CSV processing and feature engineering |
 | LangChain Core | Prompt and runnable composition |
 | LangChain Google GenAI | Gemini chat and embedding integrations |
@@ -158,27 +155,17 @@ python src\vector_store.py
 `scrape_bus_data(source, destination)`:
 
 1. Creates the `data` directory.
-2. Builds a route-specific source URL.
-3. Opens a headless Chromium browser with Playwright.
-4. Extracts operator, route, departure, duration, seat type, and price.
-5. Uses route-aware fallback inventory if the source is unavailable.
-6. Writes `data/bus_raw.csv`.
+2. Generates route-aware inventory using the selected cities.
+3. Derives operator, route, departure, duration, seat type, and price.
+4. Writes `data/bus_raw.csv`.
 
 The fallback logic estimates road distance using known Indian city
 coordinates. It derives realistic durations and fares from distance, so
 Chennai → Vellore and Chennai → Kochi do not show the same inventory.
 Chennai → Bangalore retains a curated demo dataset suitable for evaluation.
 
-Live browser scraping is disabled by default because Streamlit Cloud does not
-provide a Playwright browser binary automatically. To enable it on a machine
-where Chromium is installed, set:
-
-```env
-ENABLE_LIVE_SCRAPER=true
-```
-
-If live scraping is disabled or unavailable, the application safely uses the
-route-aware fallback instead of crashing.
+Browser automation is intentionally excluded from the deployed runtime.
+Integrate a separate ingestion worker if live provider scraping is required.
 
 ### 2. `src/prepare_data.py`
 
@@ -314,14 +301,6 @@ collection prevents results from a previous route leaking into the current
 recommendation.
 
 ## Troubleshooting
-
-### `Executable doesn't exist` from Playwright
-
-Install Chromium:
-
-```powershell
-python -m playwright install chromium
-```
 
 ### `GEMINI_API_KEY is not configured`
 

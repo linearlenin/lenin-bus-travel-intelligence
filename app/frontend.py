@@ -2,7 +2,6 @@
 
 import os
 import sys
-import asyncio
 
 import pandas as pd
 import streamlit as st
@@ -120,8 +119,7 @@ if refresh_route:
     else:
         route = f"{source} to {destination}"
         with st.spinner(f"Finding buses from {source} to {destination}..."):
-            os.environ["ENABLE_LIVE_SCRAPER"] = "false"
-            asyncio.run(scrape_bus_data(source, destination))
+            scrape_bus_data(source, destination)
             run_pipeline()
             if os.getenv("GEMINI_API_KEY"):
                 build_vector_store()
