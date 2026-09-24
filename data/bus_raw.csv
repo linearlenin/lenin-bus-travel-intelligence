@@ -1,0 +1,8 @@
+operator,route,departure,duration,seat_type,price
+InterCity Express,Chennai to Kochi,06:30,13h 25m,AC Sleeper,₹1390
+National Travels,Chennai to Kochi,09:15,13h 46m,AC Seater,₹1180
+CityLink Bus,Chennai to Kochi,18:00,14h 07m,Non-AC Sleeper,₹940
+Highway Connect,Chennai to Kochi,20:30,13h 25m,AC Sleeper,₹1740
+State Roadways,Chennai to Kochi,21:45,13h 46m,Non-AC Seater,₹760
+ComfortRide,Chennai to Kochi,22:30,14h 07m,AC Semi-Sleeper,₹1290
+RapidRoute,Chennai to Kochi,23:15,13h 25m,AC Seater,₹1530
