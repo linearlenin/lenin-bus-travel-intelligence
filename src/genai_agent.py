@@ -9,6 +9,7 @@ from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai._common import GoogleGenerativeAIError
 
 from src.vector_store import CLEANED_PATH, hybrid_search
 
@@ -85,13 +86,22 @@ def process_travel_query(user_query: str, route: str | None = None) -> Tuple[str
         filters["route"] = route
     use_gemini = bool(os.getenv("GEMINI_API_KEY")) and os.getenv("GEMINI_API_KEY") != "your_gemini_api_key_here"
     if use_gemini:
-        documents = hybrid_search(user_query, filters=filters, k=4)
+        try:
+            documents = hybrid_search(user_query, filters=filters, k=4)
+        except (GoogleGenerativeAIError, ValueError):
+            documents = _offline_search(user_query, filters)
         if not documents and filters and not route:
-            documents = hybrid_search(user_query, filters=None, k=4)
+            try:
+                documents = hybrid_search(user_query, filters=None, k=4)
+            except (GoogleGenerativeAIError, ValueError):
+                documents = _offline_search(user_query, {})
         context = "\n\n".join(document.page_content for document in documents) or "No matching inventory found."
         model = ChatGoogleGenerativeAI(model="gemini-3.6-flash", temperature=0.2)
         chain = PromptTemplate(template=PROMPT, input_variables=["context", "question"]) | model | StrOutputParser()
-        return chain.invoke({"context": context, "question": user_query}), len(documents)
+        try:
+            return chain.invoke({"context": context, "question": user_query}), len(documents)
+        except GoogleGenerativeAIError:
+            return _offline_response(documents, user_query), len(documents)
 
     documents = _offline_search(user_query, filters)
     if not documents and filters and not route:

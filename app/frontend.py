@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from src.genai_agent import process_travel_query
 from src.prepare_data import run_pipeline
 from src.scraper import scrape_bus_data
-from src.vector_store import build_vector_store
 
 
 DATA_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "bus_cleaned.csv"))
@@ -121,8 +120,6 @@ if refresh_route:
         with st.spinner(f"Finding buses from {source} to {destination}..."):
             scrape_bus_data(source, destination)
             run_pipeline()
-            if os.getenv("GEMINI_API_KEY"):
-                build_vector_store()
         st.session_state.route = route
         st.session_state.chat_history = []
         st.success(f"Route loaded: {route}")
