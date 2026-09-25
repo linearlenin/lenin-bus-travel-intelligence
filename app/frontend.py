@@ -188,8 +188,8 @@ st.markdown(
         gap: 0.35rem;
     }
     div[data-testid="stTabs"] button[role="tab"] {
-        background: #ffffff !important;
-        border: 2px solid #7f1d1d !important;
+        background: linear-gradient(135deg, #fecaca, #fed7aa) !important;
+        border: 2px solid #991b1b !important;
         border-radius: 12px !important;
         color: #111111 !important;
         font-size: 0.95rem !important;
@@ -199,13 +199,13 @@ st.markdown(
         opacity: 1 !important;
     }
     div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
-        background: #ffffff !important;
-        border: 2px solid #7f1d1d !important;
+        background: linear-gradient(135deg, #fecaca, #fed7aa) !important;
+        border: 2px solid #991b1b !important;
         color: #111111 !important;
         box-shadow: none !important;
     }
     div[data-testid="stTabs"] button[role="tab"]:hover {
-        background: #ffffff !important;
+        background: linear-gradient(135deg, #fecaca, #fed7aa) !important;
         color: #111111 !important;
     }
     div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
