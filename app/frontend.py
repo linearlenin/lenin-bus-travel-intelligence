@@ -77,11 +77,24 @@ st.markdown(
         overflow: hidden;
     }
     .assistant-card {
-        background: linear-gradient(135deg, #fff7ed, #fff1f2);
-        border: 1px solid #fecaca;
+        background: #ffffff;
+        border: 2px solid #ea580c;
         border-radius: 16px;
         margin-bottom: 1rem;
         padding: 1rem 1.1rem;
+    }
+    .assistant-card h3 {
+        color: #991b1b;
+        font-size: 1.1rem;
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        margin: 0;
+    }
+    .assistant-card p {
+        color: #431407;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin: 0.45rem 0 0;
     }
     .chart-card {
         background: rgba(255, 255, 255, 0.88);
@@ -125,12 +138,32 @@ st.markdown(
         text-align: right;
     }
     .answer-card {
-        background: linear-gradient(135deg, #fff7ed, #fff1f2);
-        border: 1px solid #fdba74;
+        background: #ffffff;
+        border: 2px solid #f97316;
         border-radius: 14px;
         box-shadow: 0 5px 16px rgba(127, 29, 29, 0.08);
+        color: #26120b;
+        font-size: 1rem;
+        font-weight: 600;
+        line-height: 1.6;
         margin-top: 0.5rem;
         padding: 0.8rem 1rem;
+    }
+    .answer-card p, .answer-card li, .answer-card strong {
+        color: #26120b !important;
+    }
+    div[data-testid="stChatMessage"] {
+        color: #26120b;
+    }
+    div[data-testid="stChatMessage"] p,
+    div[data-testid="stChatMessage"] li {
+        color: #26120b !important;
+        font-size: 0.98rem;
+        line-height: 1.55;
+    }
+    div[data-testid="stChatMessage"] code {
+        background: #ffedd5;
+        color: #7c2d12;
     }
     div[data-testid="stTabs"] button[role="tab"] {
         color: #991b1b;
