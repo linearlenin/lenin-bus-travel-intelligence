@@ -51,11 +51,52 @@ st.markdown(
         font-weight: 700;
     }
     div[data-testid="stMetric"] {
-        background: rgba(255, 255, 255, 0.82);
-        border: 1px solid #fecaca;
-        border-radius: 14px;
-        padding: 0.8rem;
-        box-shadow: 0 5px 18px rgba(127, 29, 29, 0.07);
+        display: none;
+    }
+    .kpi-card {
+        min-height: 142px;
+        border-radius: 16px;
+        padding: 1rem 1.05rem;
+        color: #ffffff;
+        box-shadow: 0 8px 22px rgba(127, 29, 29, 0.16);
+        overflow-wrap: anywhere;
+    }
+    .kpi-card.fare { background: linear-gradient(145deg, #b91c1c, #dc2626); }
+    .kpi-card.average { background: linear-gradient(145deg, #c2410c, #ea580c); }
+    .kpi-card.time { background: linear-gradient(145deg, #9f1239, #e11d48); }
+    .kpi-card.count { background: linear-gradient(145deg, #7c2d12, #c2410c); }
+    .kpi-label {
+        color: #ffedd5;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        line-height: 1.25;
+        text-transform: uppercase;
+    }
+    .kpi-value {
+        font-size: clamp(1.35rem, 3vw, 1.85rem);
+        font-weight: 900;
+        line-height: 1.15;
+        margin-top: 0.55rem;
+    }
+    .kpi-detail {
+        color: #fff7ed;
+        font-size: 0.84rem;
+        font-weight: 600;
+        line-height: 1.25;
+        margin-top: 0.35rem;
+    }
+    @media (max-width: 640px) {
+        .block-container {
+            padding: 1.25rem 0.8rem 2rem;
+        }
+        .kpi-card {
+            min-height: 118px;
+            padding: 0.9rem;
+        }
+        .kpi-value {
+            font-size: 1.55rem;
+        }
     }
     </style>
     """,
@@ -134,13 +175,25 @@ with analytics_tab:
         st.warning("Inventory is not available. Run `python src/scraper.py` followed by `python src/prepare_data.py`.")
     else:
         frame = pd.read_csv(DATA_FILE)
-        metrics = st.columns(4)
         cheapest = frame.loc[frame["price_inr"].idxmin()]
         fastest = int(frame["duration_mins"].min())
-        metrics[0].metric("Lowest Fare", f"₹{int(frame['price_inr'].min())}", str(cheapest["operator"]))
-        metrics[1].metric("Average Fare", f"₹{int(frame['price_inr'].mean())}")
-        metrics[2].metric("Shortest Journey", f"{fastest // 60}h {fastest % 60}m")
-        metrics[3].metric("Indexed Buses", len(frame))
+        kpis = st.columns(4, gap="small")
+        cards = [
+            ("fare", "💰 LOWEST FARE", f"₹{int(frame['price_inr'].min())}", str(cheapest["operator"])),
+            ("average", "📊 AVERAGE FARE", f"₹{int(frame['price_inr'].mean())}", "Across this route"),
+            ("time", "⏱ SHORTEST JOURNEY", f"{fastest // 60}h {fastest % 60}m", "Fastest available bus"),
+            ("count", "🚌 INDEXED BUSES", str(len(frame)), "Available inventory"),
+        ]
+        for column, (style, label, value, detail) in zip(kpis, cards):
+            with column:
+                st.markdown(
+                    f'<div class="kpi-card {style}">'
+                    f'<div class="kpi-label">{label}</div>'
+                    f'<div class="kpi-value">{value}</div>'
+                    f'<div class="kpi-detail">{detail}</div>'
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
         st.subheader(f"Current Fleet Inventory: {active_route}")
         st.dataframe(
             frame[["operator", "route", "departure", "seat_type", "price_inr", "duration"]],
