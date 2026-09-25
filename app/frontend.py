@@ -165,24 +165,46 @@ st.markdown(
         background: #ffedd5;
         color: #7c2d12;
     }
+    div[data-testid="stTextInput"] label,
+    div[data-testid="stTextInput"] label p {
+        color: #111111 !important;
+        font-size: 1rem !important;
+        font-weight: 900 !important;
+    }
+    div[data-testid="stTextInput"] input {
+        background: #ffffff !important;
+        border: 2px solid #991b1b !important;
+        border-radius: 12px !important;
+        color: #111111 !important;
+        font-size: 1rem !important;
+        font-weight: 800 !important;
+        min-height: 2.8rem;
+    }
+    div[data-testid="stTextInput"] input::placeholder {
+        color: #6b7280 !important;
+        opacity: 1 !important;
+    }
+    div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+        gap: 0.35rem;
+    }
     div[data-testid="stTabs"] button[role="tab"] {
-        background: #fff7ed;
-        border: 1px solid #fed7aa;
+        background: #fff7ed !important;
+        border: 2px solid #b91c1c !important;
         border-radius: 10px 10px 0 0;
-        color: #9a3412;
-        font-size: 0.9rem;
-        font-weight: 800;
+        color: #111111 !important;
+        font-size: 0.9rem !important;
+        font-weight: 900 !important;
         margin-right: 0.35rem;
         padding: 0.65rem 1rem;
     }
     div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
-        background: linear-gradient(90deg, #b91c1c, #ea580c);
-        border-color: #b91c1c;
-        color: #ffffff;
+        background: linear-gradient(90deg, #b91c1c, #ea580c) !important;
+        border-color: #7f1d1d !important;
+        color: #ffffff !important;
     }
     div[data-testid="stTabs"] button[role="tab"]:hover {
-        background: #fed7aa;
-        color: #7f1d1d;
+        background: #fed7aa !important;
+        color: #111111 !important;
     }
     div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
         background: #b91c1c;
