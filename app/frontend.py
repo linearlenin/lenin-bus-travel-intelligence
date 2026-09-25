@@ -192,16 +192,27 @@ st.markdown(
         border: 2px solid #991b1b !important;
         border-radius: 12px !important;
         color: #111111 !important;
+        -webkit-text-fill-color: #111111 !important;
         font-size: 0.95rem !important;
         font-weight: 900 !important;
         margin-right: 0.35rem;
         padding: 0.65rem 1rem;
         opacity: 1 !important;
     }
+    div[data-testid="stTabs"] button[role="tab"] *,
+    div[data-testid="stTabs"] button[role="tab"] p,
+    div[data-testid="stTabs"] button[role="tab"] span,
+    div[data-testid="stTabs"] button[role="tab"] div {
+        color: #111111 !important;
+        -webkit-text-fill-color: #111111 !important;
+        font-weight: 900 !important;
+        opacity: 1 !important;
+    }
     div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
         background: linear-gradient(135deg, #fecaca, #fed7aa) !important;
         border: 2px solid #991b1b !important;
         color: #111111 !important;
+        -webkit-text-fill-color: #111111 !important;
         box-shadow: none !important;
     }
     div[data-testid="stTabs"] button[role="tab"]:hover {
