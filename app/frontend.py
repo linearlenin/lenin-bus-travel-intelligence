@@ -188,22 +188,24 @@ st.markdown(
         gap: 0.35rem;
     }
     div[data-testid="stTabs"] button[role="tab"] {
-        background: #fff7ed !important;
-        border: 2px solid #b91c1c !important;
-        border-radius: 10px 10px 0 0;
+        background: #ffffff !important;
+        border: 2px solid #7f1d1d !important;
+        border-radius: 12px !important;
         color: #111111 !important;
-        font-size: 0.9rem !important;
+        font-size: 0.95rem !important;
         font-weight: 900 !important;
         margin-right: 0.35rem;
         padding: 0.65rem 1rem;
+        opacity: 1 !important;
     }
     div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
-        background: linear-gradient(90deg, #b91c1c, #ea580c) !important;
-        border-color: #7f1d1d !important;
-        color: #ffffff !important;
+        background: #fff7ed !important;
+        border: 3px solid #991b1b !important;
+        color: #111111 !important;
+        box-shadow: 0 3px 0 #dc2626;
     }
     div[data-testid="stTabs"] button[role="tab"]:hover {
-        background: #fed7aa !important;
+        background: #ffedd5 !important;
         color: #111111 !important;
     }
     div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
