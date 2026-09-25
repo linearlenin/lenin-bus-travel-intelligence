@@ -199,18 +199,18 @@ st.markdown(
         opacity: 1 !important;
     }
     div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
-        background: #fff7ed !important;
-        border: 3px solid #991b1b !important;
+        background: #ffffff !important;
+        border: 2px solid #7f1d1d !important;
         color: #111111 !important;
-        box-shadow: 0 3px 0 #dc2626;
+        box-shadow: none !important;
     }
     div[data-testid="stTabs"] button[role="tab"]:hover {
-        background: #ffedd5 !important;
+        background: #ffffff !important;
         color: #111111 !important;
     }
     div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
-        background: #b91c1c;
-        height: 3px;
+        background: #7f1d1d;
+        height: 2px;
     }
     div[data-testid="stMetric"] {
         display: none;
