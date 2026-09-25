@@ -83,6 +83,55 @@ st.markdown(
         margin-bottom: 1rem;
         padding: 1rem 1.1rem;
     }
+    .chart-card {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid #fed7aa;
+        border-radius: 16px;
+        box-shadow: 0 6px 18px rgba(127, 29, 29, 0.08);
+        padding: 1rem;
+    }
+    .price-row {
+        align-items: center;
+        display: flex;
+        gap: 0.65rem;
+        margin: 0.65rem 0;
+    }
+    .price-name {
+        color: #7f1d1d;
+        flex: 0 0 34%;
+        font-size: 0.78rem;
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .price-track {
+        background: #ffedd5;
+        border-radius: 999px;
+        flex: 1;
+        height: 1.15rem;
+        overflow: hidden;
+    }
+    .price-bar {
+        background: linear-gradient(90deg, #b91c1c, #f97316);
+        border-radius: 999px;
+        height: 100%;
+    }
+    .price-value {
+        color: #9a3412;
+        flex: 0 0 4.1rem;
+        font-size: 0.82rem;
+        font-weight: 900;
+        text-align: right;
+    }
+    .answer-card {
+        background: linear-gradient(135deg, #fff7ed, #fff1f2);
+        border: 1px solid #fdba74;
+        border-radius: 14px;
+        box-shadow: 0 5px 16px rgba(127, 29, 29, 0.08);
+        margin-top: 0.5rem;
+        padding: 0.8rem 1rem;
+    }
     div[data-testid="stTabs"] button[role="tab"] {
         color: #991b1b;
         font-weight: 700;
@@ -241,8 +290,20 @@ with analytics_tab:
             use_container_width=True,
             hide_index=True,
         )
-        st.subheader("Price by Fleet Operator")
-        st.bar_chart(frame.set_index("operator")["price_inr"])
+        st.markdown(
+            '<div class="section-header"><h3>💰 PRICE BY FLEET OPERATOR</h3></div>',
+            unsafe_allow_html=True,
+        )
+        max_price = max(int(frame["price_inr"].max()), 1)
+        bars = []
+        for row in frame.sort_values("price_inr", ascending=False).itertuples():
+            width = max(8, int(row.price_inr / max_price * 100))
+            bars.append(
+                f'<div class="price-row"><div class="price-name">{row.operator}</div>'
+                f'<div class="price-track"><div class="price-bar" style="width:{width}%"></div></div>'
+                f'<div class="price-value">₹{int(row.price_inr)}</div></div>'
+            )
+        st.markdown(f'<div class="chart-card">{"".join(bars)}</div>', unsafe_allow_html=True)
 
 with chat_tab:
     st.markdown(
@@ -279,6 +340,8 @@ with chat_tab:
         with st.chat_message("assistant"):
             with st.spinner("Searching the inventory..."):
                 answer, count = process_travel_query(question, route=active_route)
+            st.markdown('<div class="answer-card">', unsafe_allow_html=True)
             st.markdown(answer)
+            st.markdown("</div>", unsafe_allow_html=True)
             st.caption(f"Matched {count} inventory records.")
         st.session_state.chat_history.append({"role": "assistant", "content": answer})

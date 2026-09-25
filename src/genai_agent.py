@@ -45,6 +45,14 @@ def extract_route(query: str) -> str | None:
         destination = match.group(1).strip().title()
         source = match.group(2).strip().title()
         return f"{source} to {destination}"
+
+    match = re.search(
+        r"\b(?:bus(?:es)?\s+)?([a-z]+(?:\s+[a-z]+)?)\s+to\s+([a-z]+(?:\s+[a-z]+)?)(?=\s+(?:under|below|with|for|at|by)\b|$)",
+        query,
+        re.IGNORECASE,
+    )
+    if match:
+        return f"{match.group(1).strip().title()} to {match.group(2).strip().title()}"
     return None
 
 
