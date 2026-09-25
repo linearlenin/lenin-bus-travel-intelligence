@@ -166,8 +166,27 @@ st.markdown(
         color: #7c2d12;
     }
     div[data-testid="stTabs"] button[role="tab"] {
-        color: #991b1b;
-        font-weight: 700;
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        border-radius: 10px 10px 0 0;
+        color: #9a3412;
+        font-size: 0.9rem;
+        font-weight: 800;
+        margin-right: 0.35rem;
+        padding: 0.65rem 1rem;
+    }
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+        background: linear-gradient(90deg, #b91c1c, #ea580c);
+        border-color: #b91c1c;
+        color: #ffffff;
+    }
+    div[data-testid="stTabs"] button[role="tab"]:hover {
+        background: #fed7aa;
+        color: #7f1d1d;
+    }
+    div[data-testid="stTabs"] [data-baseweb="tab-highlight"] {
+        background: #b91c1c;
+        height: 3px;
     }
     div[data-testid="stMetric"] {
         display: none;
@@ -256,14 +275,18 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown('<div class="route-card"><h3>SEARCH BUSES ACROSS INDIA</h3></div>', unsafe_allow_html=True)
+st.markdown('<div class="route-card"><h3>SEARCH BUSES ACROSS INDIA</h3><span class="route-pill">DEFAULT DEMO: CHENNAI → BANGALORE</span></div>', unsafe_allow_html=True)
 route_columns = st.columns([1, 0.12, 1], gap="small")
 with route_columns[0]:
-    source = st.text_input("From", value="Chennai", placeholder="e.g. Delhi", key="route_source")
+    if "route_source" not in st.session_state:
+        st.session_state.route_source = "Chennai"
+    source = st.text_input("From", placeholder="e.g. Delhi", key="route_source")
 with route_columns[1]:
     st.markdown("<div style='text-align:center;padding-top:2rem;font-size:1.4rem'>→</div>", unsafe_allow_html=True)
 with route_columns[2]:
-    destination = st.text_input("To", value="Bangalore", placeholder="e.g. Mumbai", key="route_destination")
+    if "route_destination" not in st.session_state:
+        st.session_state.route_destination = "Bangalore"
+    destination = st.text_input("To", placeholder="e.g. Mumbai", key="route_destination")
 
 search_column = st.columns([1, 2, 1])[1]
 with search_column:
