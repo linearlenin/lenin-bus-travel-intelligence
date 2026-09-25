@@ -121,38 +121,9 @@ def process_travel_query(user_query: str, route: str | None = None) -> Tuple[str
     route = requested_route or route
     if route:
         filters["route"] = route
-    # Route searches must read the just-generated CSV. A persistent Chroma
-    # collection can contain a previous route and is not safe for this case.
-    if requested_route:
-        documents = _offline_search(user_query, filters)
-        if not documents:
-            return _offline_response(documents, user_query), 0
-        # Keep explicit route answers tied to the current local inventory.
-        return _offline_response(documents, user_query), len(documents)
-    else:
-        documents = []
-    use_gemini = bool(os.getenv("GEMINI_API_KEY")) and os.getenv("GEMINI_API_KEY") != "your_gemini_api_key_here"
-    if use_gemini and not requested_route:
-        try:
-            documents = hybrid_search(user_query, filters=filters, k=4)
-        except (GoogleGenerativeAIError, ValueError):
-            documents = _offline_search(user_query, filters)
-        if not documents and filters and not route:
-            try:
-                documents = hybrid_search(user_query, filters=None, k=4)
-            except (GoogleGenerativeAIError, ValueError):
-                documents = _offline_search(user_query, {})
-    if use_gemini:
-        context = "\n\n".join(document.page_content for document in documents) or "No matching inventory found."
-        model = ChatGoogleGenerativeAI(model="gemini-3.6-flash", temperature=0.2)
-        chain = PromptTemplate(template=PROMPT, input_variables=["context", "question"]) | model | StrOutputParser()
-        try:
-            return chain.invoke({"context": context, "question": user_query}), len(documents)
-        except GoogleGenerativeAIError:
-            return _offline_response(documents, user_query), len(documents)
-
-    if not documents:
-        documents = _offline_search(user_query, filters)
+    # Recommendations are intentionally deterministic. This prevents an LLM
+    # from inventing a route, fare, operator, or schedule not in the CSV.
+    documents = _offline_search(user_query, filters)
     if not documents and filters and not route:
         documents = _offline_search(user_query, {}, k=4)
     return _offline_response(documents, user_query), len(documents)
