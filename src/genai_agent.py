@@ -71,6 +71,8 @@ def extract_query_constraints(query: str) -> Dict[str, Any]:
         filters["normal_bus"] = True
     elif re.search(r"\bac[\s-]?sleeper\b|\bsleeper\b", query, re.IGNORECASE):
         filters["seat_type"] = "AC Sleeper"
+    elif re.search(r"\bac\s+bus(?:es)?\b|\bair[-\s]?conditioned\s+bus(?:es)?\b", query, re.IGNORECASE):
+        filters["ac_bus"] = True
     elif re.search(r"\b(normal|ordinary|regular|government)\s+bus", query, re.IGNORECASE):
         filters["normal_bus"] = True
     return filters
@@ -95,6 +97,8 @@ def _offline_search(
         frame = frame[frame["seat_type"].str.casefold() == filters["seat_type"].casefold()]
     if filters.get("normal_bus"):
         frame = frame[~frame["seat_type"].str.match(r"^AC\b", case=False, na=False)]
+    if filters.get("ac_bus"):
+        frame = frame[frame["seat_type"].str.match(r"^AC\b", case=False, na=False)]
     if filters.get("route"):
         frame = frame[frame["route"].str.casefold() == filters["route"].casefold()]
     words = set(re.findall(r"[a-z0-9]+", query.casefold()))
