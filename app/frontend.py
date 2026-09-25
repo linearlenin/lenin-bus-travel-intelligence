@@ -187,6 +187,38 @@ st.markdown(
     div[data-testid="stTabs"] [data-baseweb="tab-list"] {
         gap: 0.35rem;
     }
+    div[role="radiogroup"] {
+        background: #ffffff;
+        border: 2px solid #991b1b;
+        border-radius: 14px;
+        box-shadow: 0 5px 16px rgba(127, 29, 29, 0.12);
+        display: flex;
+        gap: 0.45rem;
+        margin: 1.2rem 0;
+        padding: 0.45rem;
+    }
+    div[role="radiogroup"] label {
+        background: #ffffff !important;
+        border: 2px solid #7f1d1d !important;
+        border-radius: 10px;
+        color: #111111 !important;
+        cursor: pointer;
+        font-size: 0.95rem !important;
+        font-weight: 900 !important;
+        padding: 0.65rem 0.8rem;
+    }
+    div[role="radiogroup"] label p,
+    div[role="radiogroup"] label span,
+    div[role="radiogroup"] label div {
+        color: #111111 !important;
+        -webkit-text-fill-color: #111111 !important;
+        font-weight: 900 !important;
+        opacity: 1 !important;
+    }
+    div[role="radiogroup"] label:has(input:checked) {
+        background: #ffedd5 !important;
+        border-color: #991b1b !important;
+    }
     div[data-testid="stTabs"] button[role="tab"],
     div[data-testid="stTabs"] [data-baseweb="tab"] {
         background: linear-gradient(135deg, #fecaca, #fed7aa) !important;
@@ -352,9 +384,14 @@ if refresh_route:
 
 active_route = st.session_state.get("route", "Chennai to Bangalore")
 
-analytics_tab, chat_tab = st.tabs(["📊 Inventory & Route Analytics", "🤖 Conversational Assistant"])
+selected_tab = st.radio(
+    "NAVIGATE",
+    ["📊 Inventory & Route Analytics", "🤖 Conversational Assistant"],
+    horizontal=True,
+    label_visibility="collapsed",
+)
 
-with analytics_tab:
+if selected_tab == "📊 Inventory & Route Analytics":
     if not os.path.exists(DATA_FILE):
         st.warning("Inventory is not available. Run `python src/scraper.py` followed by `python src/prepare_data.py`.")
     else:
@@ -403,7 +440,7 @@ with analytics_tab:
             )
         st.markdown(f'<div class="chart-card">{"".join(bars)}</div>', unsafe_allow_html=True)
 
-with chat_tab:
+else:
     st.markdown(
         '<div class="assistant-card"><h3>🤖 FLEET AI DISPATCHER</h3>'
         '<p>Ask for the cheapest, fastest, or most comfortable bus for any route.</p>'
