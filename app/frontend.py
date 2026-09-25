@@ -187,7 +187,8 @@ st.markdown(
     div[data-testid="stTabs"] [data-baseweb="tab-list"] {
         gap: 0.35rem;
     }
-    div[data-testid="stTabs"] button[role="tab"] {
+    div[data-testid="stTabs"] button[role="tab"],
+    div[data-testid="stTabs"] [data-baseweb="tab"] {
         background: linear-gradient(135deg, #fecaca, #fed7aa) !important;
         border: 2px solid #991b1b !important;
         border-radius: 12px !important;
@@ -200,22 +201,28 @@ st.markdown(
         opacity: 1 !important;
     }
     div[data-testid="stTabs"] button[role="tab"] *,
+    div[data-testid="stTabs"] [data-baseweb="tab"] *,
     div[data-testid="stTabs"] button[role="tab"] p,
     div[data-testid="stTabs"] button[role="tab"] span,
-    div[data-testid="stTabs"] button[role="tab"] div {
+    div[data-testid="stTabs"] button[role="tab"] div,
+    div[data-testid="stTabs"] [data-baseweb="tab"] p,
+    div[data-testid="stTabs"] [data-baseweb="tab"] span,
+    div[data-testid="stTabs"] [data-baseweb="tab"] div {
         color: #111111 !important;
         -webkit-text-fill-color: #111111 !important;
         font-weight: 900 !important;
         opacity: 1 !important;
     }
-    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
+    div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {
         background: linear-gradient(135deg, #fecaca, #fed7aa) !important;
         border: 2px solid #991b1b !important;
         color: #111111 !important;
         -webkit-text-fill-color: #111111 !important;
         box-shadow: none !important;
     }
-    div[data-testid="stTabs"] button[role="tab"]:hover {
+    div[data-testid="stTabs"] button[role="tab"]:hover,
+    div[data-testid="stTabs"] [data-baseweb="tab"]:hover {
         background: linear-gradient(135deg, #fecaca, #fed7aa) !important;
         color: #111111 !important;
     }
