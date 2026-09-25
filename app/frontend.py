@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.genai_agent import process_travel_query
+from src.genai_agent import extract_route, process_travel_query
 from src.prepare_data import run_pipeline
 from src.scraper import scrape_bus_data
 
@@ -45,6 +45,43 @@ st.markdown(
         color: #7f1d1d;
         font-size: 1rem;
         margin-bottom: 1.5rem;
+    }
+    .section-header {
+        background: linear-gradient(135deg, #991b1b, #ea580c);
+        border-radius: 15px;
+        color: white;
+        margin: 1.3rem 0 0.85rem;
+        padding: 0.85rem 1rem;
+    }
+    .section-header h3 {
+        color: white;
+        font-size: 1.05rem;
+        letter-spacing: 0.06em;
+        margin: 0;
+        text-transform: uppercase;
+    }
+    .route-pill {
+        background: #fff7ed;
+        border: 1px solid #fdba74;
+        border-radius: 999px;
+        color: #9a3412;
+        display: inline-block;
+        font-size: 0.82rem;
+        font-weight: 800;
+        margin-top: 0.45rem;
+        padding: 0.3rem 0.75rem;
+    }
+    div[data-testid="stDataFrame"] {
+        border: 2px solid #fed7aa;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    .assistant-card {
+        background: linear-gradient(135deg, #fff7ed, #fff1f2);
+        border: 1px solid #fecaca;
+        border-radius: 16px;
+        margin-bottom: 1rem;
+        padding: 1rem 1.1rem;
     }
     div[data-testid="stTabs"] button[role="tab"] {
         color: #991b1b;
@@ -194,7 +231,11 @@ with analytics_tab:
                     "</div>",
                     unsafe_allow_html=True,
                 )
-        st.subheader(f"Current Fleet Inventory: {active_route}")
+        st.markdown(
+            f'<div class="section-header"><h3>🚌 CURRENT FLEET INVENTORY</h3>'
+            f'<span class="route-pill">{active_route}</span></div>',
+            unsafe_allow_html=True,
+        )
         st.dataframe(
             frame[["operator", "route", "departure", "seat_type", "price_inr", "duration"]],
             use_container_width=True,
@@ -204,7 +245,12 @@ with analytics_tab:
         st.bar_chart(frame.set_index("operator")["price_inr"])
 
 with chat_tab:
-    st.subheader("Fleet AI Dispatcher")
+    st.markdown(
+        '<div class="assistant-card"><h3>🤖 FLEET AI DISPATCHER</h3>'
+        '<p>Ask for the cheapest, fastest, or most comfortable bus for any route.</p>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
     st.caption(f"Ask for the best bus on {active_route}, with budget, timing, or comfort preferences.")
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = [
@@ -217,6 +263,16 @@ with chat_tab:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     if question := st.chat_input("Enter your travel requirements..."):
+        query_route = extract_route(question)
+        if query_route:
+            if query_route.casefold() != active_route.casefold():
+                query_source, query_destination = query_route.split(" to ", maxsplit=1)
+                with st.spinner(f"Switching inventory to {query_route}..."):
+                    scrape_bus_data(query_source, query_destination)
+                    run_pipeline()
+                st.session_state.route = query_route
+                active_route = query_route
+                st.session_state.chat_history = []
         st.session_state.chat_history.append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.markdown(question)

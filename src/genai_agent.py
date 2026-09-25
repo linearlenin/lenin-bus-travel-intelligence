@@ -26,6 +26,28 @@ User question: {question}
 """
 
 
+def extract_route(query: str) -> str | None:
+    """Extract a route from either 'from X to Y' or 'Y bus from X' wording."""
+    match = re.search(
+        r"\bfrom\s+([a-z][a-z .-]*?)\s+to\s+([a-z][a-z .-]*?)(?=\s+(?:under|below|with|for|at|by)\b|$)",
+        query,
+        re.IGNORECASE,
+    )
+    if match:
+        return f"{match.group(1).strip().title()} to {match.group(2).strip().title()}"
+
+    match = re.search(
+        r"\b(?:(?:cheap|best|affordable)\s+)?([a-z]+(?:\s+[a-z]+)?)\s+bus(?:es)?\s+from\s+([a-z][a-z .-]*?)(?=\s+(?:under|below|with|for|at|by)\b|$)",
+        query,
+        re.IGNORECASE,
+    )
+    if match:
+        destination = match.group(1).strip().title()
+        source = match.group(2).strip().title()
+        return f"{source} to {destination}"
+    return None
+
+
 def extract_query_constraints(query: str) -> Dict[str, Any]:
     filters: Dict[str, Any] = {}
     price = re.search(
@@ -82,6 +104,7 @@ def _offline_response(documents: List[Document], question: str) -> str:
 
 def process_travel_query(user_query: str, route: str | None = None) -> Tuple[str, int]:
     filters = extract_query_constraints(user_query)
+    route = extract_route(user_query) or route
     if route:
         filters["route"] = route
     use_gemini = bool(os.getenv("GEMINI_API_KEY")) and os.getenv("GEMINI_API_KEY") != "your_gemini_api_key_here"
