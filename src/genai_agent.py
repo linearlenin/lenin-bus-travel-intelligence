@@ -30,7 +30,7 @@ User question: {question}
 def extract_route(query: str) -> str | None:
     """Extract a route from either 'from X to Y' or 'Y bus from X' wording."""
     match = re.search(
-        r"\bfrom\s+([a-z][a-z .-]*?)\s+to\s+([a-z][a-z .-]*?)(?=\s+(?:under|below|with|for|at|by)\b|$)",
+        r"\bfrom\s+([a-z][a-z .-]*?)\s+to\s+([a-z][a-z .-]*?)(?=\s+(?:under|below|with|for|at|by|normal|ordinary|regular)\b|$)",
         query,
         re.IGNORECASE,
     )
@@ -38,7 +38,7 @@ def extract_route(query: str) -> str | None:
         return f"{match.group(1).strip().title()} to {match.group(2).strip().title()}"
 
     match = re.search(
-        r"\b(?:(?:cheap|best|affordable)\s+)?([a-z]+(?:\s+[a-z]+)?)\s+bus(?:es)?\s+from\s+([a-z][a-z .-]*?)(?=\s+(?:under|below|with|for|at|by)\b|$)",
+        r"\b(?:(?:cheap|best|affordable|normal|ordinary|regular)\s+)?([a-z]+(?:\s+[a-z]+)?)\s+bus(?:es)?\s+from\s+([a-z][a-z .-]*?)(?=\s+(?:under|below|with|for|at|by|normal|ordinary|regular)\b|$)",
         query,
         re.IGNORECASE,
     )
@@ -48,7 +48,7 @@ def extract_route(query: str) -> str | None:
         return f"{source} to {destination}"
 
     match = re.search(
-        r"\b(?:bus(?:es)?\s+)?([a-z]+(?:\s+[a-z]+)?)\s+to\s+([a-z]+(?:\s+[a-z]+)?)(?=\s+(?:under|below|with|for|at|by)\b|$)",
+        r"\b(?:bus(?:es)?\s+)?([a-z]+(?:\s+[a-z]+)?)\s+to\s+([a-z]+(?:\s+[a-z]+)?)(?=\s+(?:under|below|with|for|at|by|normal|ordinary|regular)\b|$)",
         query,
         re.IGNORECASE,
     )
@@ -67,9 +67,11 @@ def extract_query_constraints(query: str) -> Dict[str, Any]:
     if price:
         filters["max_price"] = int(price.group(1))
     if re.search(r"\bnon[\s-]?ac\b", query, re.IGNORECASE):
-        filters["seat_type"] = "Non-AC Sleeper"
+        filters["normal_bus"] = True
     elif re.search(r"\bac[\s-]?sleeper\b|\bsleeper\b", query, re.IGNORECASE):
         filters["seat_type"] = "AC Sleeper"
+    elif re.search(r"\b(normal|ordinary|regular|government)\s+bus", query, re.IGNORECASE):
+        filters["normal_bus"] = True
     return filters
 
 
@@ -83,6 +85,8 @@ def _offline_search(query: str, filters: Dict[str, Any], k: int = 4) -> List[Doc
         frame = frame[frame["price_inr"] >= filters["min_price"]]
     if filters.get("seat_type"):
         frame = frame[frame["seat_type"].str.casefold() == filters["seat_type"].casefold()]
+    if filters.get("normal_bus"):
+        frame = frame[~frame["seat_type"].str.match(r"^AC\b", case=False, na=False)]
     if filters.get("route"):
         frame = frame[frame["route"].str.casefold() == filters["route"].casefold()]
     words = set(re.findall(r"[a-z0-9]+", query.casefold()))
@@ -123,6 +127,8 @@ def process_travel_query(user_query: str, route: str | None = None) -> Tuple[str
         documents = _offline_search(user_query, filters)
         if not documents:
             return _offline_response(documents, user_query), 0
+        # Keep explicit route answers tied to the current local inventory.
+        return _offline_response(documents, user_query), len(documents)
     else:
         documents = []
     use_gemini = bool(os.getenv("GEMINI_API_KEY")) and os.getenv("GEMINI_API_KEY") != "your_gemini_api_key_here"
