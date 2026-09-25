@@ -11,6 +11,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_google_genai._common import GoogleGenerativeAIError
 
+from src.scraper import fallback_buses
 from src.vector_store import CLEANED_PATH, hybrid_search
 
 load_dotenv()
@@ -75,10 +76,17 @@ def extract_query_constraints(query: str) -> Dict[str, Any]:
     return filters
 
 
-def _offline_search(query: str, filters: Dict[str, Any], k: int = 4) -> List[Document]:
+def _offline_search(
+    query: str,
+    filters: Dict[str, Any],
+    k: int = 4,
+    route_inventory: List[Dict[str, Any]] | None = None,
+) -> List[Document]:
     import pandas as pd
 
-    frame = pd.read_csv(CLEANED_PATH)
+    frame = pd.DataFrame(route_inventory) if route_inventory is not None else pd.read_csv(CLEANED_PATH)
+    if "price_inr" not in frame:
+        frame["price_inr"] = frame["price"].astype(str).str.replace(r"[^\d]", "", regex=True).astype(int)
     if filters.get("max_price") is not None:
         frame = frame[frame["price_inr"] <= filters["max_price"]]
     if filters.get("min_price") is not None:
@@ -123,7 +131,12 @@ def process_travel_query(user_query: str, route: str | None = None) -> Tuple[str
         filters["route"] = route
     # Recommendations are intentionally deterministic. This prevents an LLM
     # from inventing a route, fare, operator, or schedule not in the CSV.
-    documents = _offline_search(user_query, filters)
+    source, destination = requested_route.split(" to ", maxsplit=1)
+    documents = _offline_search(
+        user_query,
+        filters,
+        route_inventory=fallback_buses(source, destination),
+    )
     if not documents and filters and not route:
         documents = _offline_search(user_query, {}, k=4)
     return _offline_response(documents, user_query), len(documents)
