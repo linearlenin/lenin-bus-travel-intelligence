@@ -4,12 +4,12 @@ An end-to-end bus travel intelligence application that lets users search
 routes across India, compare fares and journey times, and ask a Gemini-powered
 assistant for grounded recommendations.
 
-The application is designed for two environments:
-
-- **Cloud-safe mode:** A deterministic, route-aware inventory generator keeps
-  the application runnable without requiring a browser binary on Streamlit
-  Cloud. Gemini embeddings and Gemini chat generation power the retrieval and
-  answer layers.
+The application uses a **cloud-safe route inventory generator**. It does not
+depend on Playwright, Chromium, or browser automation at runtime. This avoids
+deployment failures on Streamlit Cloud while still providing route-specific
+fares, operators, timings, durations, and seat categories for any searched
+Indian city pair. Gemini is an optional enhancement for semantic retrieval and
+natural-language responses.
 
 ## Features
 
@@ -38,8 +38,6 @@ User enters From + To
           |
           v
 Route-aware inventory generation
-          |
-          +---- source unavailable ----> route-aware fallback inventory
           |
           v
 Raw CSV (data/bus_raw.csv)
@@ -76,7 +74,7 @@ bus-travel-intelligence/
 ├── data/
 │   ├── bus_raw.csv              # generated ingestion output
 │   ├── bus_cleaned.csv         # generated ETL output
-│   └── chroma_db/              # generated vector index, ignored by Git
+│   │   └── chroma_db/              # optional local vector index, ignored by Git
 ├── src/
 │   ├── __init__.py
 │   ├── scraper.py
@@ -106,8 +104,8 @@ bus-travel-intelligence/
 
 - Windows, macOS, or Linux
 - Python 3.10 or later
-- Internet access for package installation and Gemini requests
-- A Gemini API key for live embeddings and LLM responses
+- Internet access for package installation
+- A Gemini API key for optional embeddings and LLM responses
 
 Python 3.14 may require newer dependency releases, which is why the project
 uses compatible minimum versions in `requirements.txt` instead of outdated
@@ -122,7 +120,6 @@ cd C:\Users\<your-user>\Desktop\bus-travel-intelligence
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-python -m playwright install chromium
 ```
 
 Create the local environment file:
@@ -147,7 +144,6 @@ The application pipeline is intentionally sequential:
 ```powershell
 python src\scraper.py
 python src\prepare_data.py
-python src\vector_store.py
 ```
 
 ### 1. `src/scraper.py`
@@ -159,13 +155,15 @@ python src\vector_store.py
 3. Derives operator, route, departure, duration, seat type, and price.
 4. Writes `data/bus_raw.csv`.
 
-The fallback logic estimates road distance using known Indian city
-coordinates. It derives realistic durations and fares from distance, so
-Chennai → Vellore and Chennai → Kochi do not show the same inventory.
-Chennai → Bangalore retains a curated demo dataset suitable for evaluation.
+The generator estimates road distance using known Indian city coordinates. It
+derives realistic durations and fares from distance, and uses route-seeded
+operator pools and departure schedules. Therefore Chennai → Vellore, Chennai
+→ Kochi, and Mumbai → Delhi do not reuse the same inventory. Chennai →
+Bangalore retains a curated demo dataset suitable for evaluation.
 
-Browser automation is intentionally excluded from the deployed runtime.
-Integrate a separate ingestion worker if live provider scraping is required.
+Browser automation is intentionally not part of this application. A future
+live provider integration should run as a separate ingestion service, not
+inside the Streamlit request lifecycle.
 
 ### 2. `src/prepare_data.py`
 
@@ -186,8 +184,11 @@ The module converts each cleaned row into a LangChain `Document` containing:
 - natural-language page content for semantic similarity,
 - metadata for deterministic filtering.
 
-The current embedding model is `models/gemini-embedding-001`. The persistent
-Chroma collection is stored under `data/chroma_db/`.
+The current embedding model is `models/gemini-embedding-001`. Chroma is
+optional: the application attempts semantic retrieval only when available and
+falls back to deterministic pandas filtering if embeddings, quota, or model
+availability fails. The optional local collection is stored under
+`data/chroma_db/`.
 
 ## Hybrid search behavior
 
@@ -237,7 +238,7 @@ http://localhost:8501
 2. Enter a city in **To**.
 3. Click **Search buses**.
 4. The route-specific ingestion and ETL pipeline runs.
-5. Gemini embeddings refresh the Chroma collection.
+5. The route inventory refreshes; optional Gemini retrieval is used when available.
 6. The analytics tab displays route metrics and inventory.
 7. The assistant tab accepts budget and comfort requirements.
 
@@ -266,7 +267,7 @@ Constraint parser check:
 python -c "from src.genai_agent import extract_query_constraints; print(extract_query_constraints('AC sleeper under 800'))"
 ```
 
-Live Gemini query check:
+Gemini query check:
 
 ```powershell
 python -c "from src.genai_agent import process_travel_query; print(process_travel_query('Find an AC sleeper under 800 rupees'))"
@@ -280,12 +281,12 @@ The query function returns:
 
 ## Design decisions
 
-### Why use a fallback dataset?
+### Why use generated route inventory?
 
-External travel sites can block automation, change their HTML structure, or
-temporarily be unavailable. The fallback keeps the demo reliable and allows
-the dashboard and query logic to be evaluated without silently presenting an
-empty screen.
+The project must be reliable on Streamlit Cloud, where browser binaries and
+third-party scraping are not guaranteed. Route-aware generation keeps the
+dashboard and query logic available without pretending that generated demo
+records are live booking inventory.
 
 ### Why use both metadata and vectors?
 
@@ -296,16 +297,17 @@ comfort, or convenience.
 
 ### Why regenerate the index after route search?
 
-Each selected route produces a new inventory snapshot. Rebuilding the
-collection prevents results from a previous route leaking into the current
-recommendation.
+Each selected route produces a new CSV inventory snapshot. Route filtering is
+applied to recommendations so results from a previous route do not leak into
+the current answer.
 
 ## Troubleshooting
 
 ### `GEMINI_API_KEY is not configured`
 
-Ensure `.env` is located in the project root and contains a non-placeholder
-value. Restart the Streamlit process after changing `.env`.
+The application still works with deterministic local filtering and ranking.
+For Gemini responses, ensure `.env` is located in the project root and
+contains a non-placeholder value. Restart Streamlit after changing `.env`.
 
 ### Gemini model not found
 
@@ -317,10 +319,11 @@ Use the current models configured in the source:
 Model availability can vary by account and region. Check Google AI Studio if
 the API reports a model availability change.
 
-### Live scraping returns fallback data
+### Gemini embeddings or chat returns an API error
 
-This is expected when the source blocks automation or the selector changes.
-The UI remains usable and clearly produces route-specific demo inventory.
+This is non-fatal. The assistant falls back to local route, fare, seat-type,
+and lexical ranking logic. Check the key, model availability, quota, and
+Streamlit Secrets if Gemini responses are required.
 
 ## Deployment
 
@@ -330,15 +333,20 @@ For Streamlit Community Cloud:
 2. Create a new Streamlit app.
 3. Select the repository and `main` branch.
 4. Set the entry point to `app/frontend.py`.
-5. Add `GEMINI_API_KEY` under App Settings → Secrets.
-6. Deploy.
+5. Add `GEMINI_API_KEY` under App Settings → Secrets (optional).
+6. Deploy or reboot the app.
+
+The deployed app does not require Playwright, Chromium, or any browser
+installation. If Streamlit logs mention `playwright._impl`, the deployment is
+running an outdated commit; confirm that the app uses the repository's `main`
+branch and redeploy.
 
 Do not put the API key in `README.md`, `requirements.txt`, source files, or
 GitHub Actions logs.
 
 ## Limitations and future improvements
 
-- Replace selectors with a maintained provider-specific ingestion adapter.
+- Add a separate provider ingestion worker if live listings are required.
 - Add a provider abstraction for multiple bus aggregators.
 - Add date-of-travel and seat-availability fields.
 - Add caching to avoid re-scraping unchanged routes.
