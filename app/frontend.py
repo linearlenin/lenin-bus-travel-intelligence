@@ -7,7 +7,15 @@ import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.genai_agent import extract_route, process_travel_query
+try:
+    from src.genai_agent import extract_route, process_travel_query
+except Exception:  # pragma: no cover - runtime fallback for minimal deployments
+    def extract_route(query: str):
+        return None
+
+    def process_travel_query(user_query: str, route: str | None = None):
+        return "AI assistant is unavailable in this deployment. Using the offline bus inventory only.", 0
+
 from src.prepare_data import format_departure_time, run_pipeline
 from src.scraper import scrape_bus_data
 

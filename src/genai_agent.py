@@ -4,12 +4,28 @@ import os
 import re
 from typing import Any, Dict, List, Tuple
 
-from dotenv import load_dotenv
-from langchain_core.documents import Document
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import PromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_google_genai._common import GoogleGenerativeAIError
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - environment fallback
+    def load_dotenv() -> None:
+        return None
+
+try:
+    from langchain_core.documents import Document
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_core.prompts import PromptTemplate
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    from langchain_google_genai._common import GoogleGenerativeAIError
+except ImportError:  # pragma: no cover - optional AI dependencies may be absent
+    class Document:  # type: ignore[override]
+        def __init__(self, page_content: str, metadata: Dict[str, Any] | None = None):
+            self.page_content = page_content
+            self.metadata = metadata or {}
+
+    StrOutputParser = None
+    PromptTemplate = None
+    ChatGoogleGenerativeAI = None
+    GoogleGenerativeAIError = Exception
 
 from src.prepare_data import format_departure_time
 from src.scraper import fallback_buses, normalize_city

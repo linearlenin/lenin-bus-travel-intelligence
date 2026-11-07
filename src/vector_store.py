@@ -4,8 +4,20 @@ import os
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from dotenv import load_dotenv
-from langchain_core.documents import Document
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - environment fallback
+    def load_dotenv() -> None:
+        return None
+
+try:
+    from langchain_core.documents import Document
+except ImportError:  # pragma: no cover - optional AI dependencies may be absent
+    class Document:  # type: ignore[override]
+        def __init__(self, page_content: str, metadata: Dict[str, Any] | None = None):
+            self.page_content = page_content
+            self.metadata = metadata or {}
 
 from src.prepare_data import format_departure_time
 
