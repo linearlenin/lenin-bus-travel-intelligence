@@ -8,7 +8,7 @@ import streamlit as st
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from src.genai_agent import extract_route, process_travel_query
-from src.prepare_data import run_pipeline
+from src.prepare_data import format_departure_time, run_pipeline
 from src.scraper import scrape_bus_data
 
 
@@ -95,6 +95,15 @@ st.markdown(
         font-size: 0.95rem;
         font-weight: 600;
         margin: 0.45rem 0 0;
+    }
+    .assistant-summary {
+        background: #fff7ed;
+        border: 1px solid #fdba74;
+        border-radius: 10px;
+        color: #431407;
+        font-size: 0.9rem;
+        margin-top: 0.75rem;
+        padding: 0.6rem 0.75rem;
     }
     .chart-card {
         background: rgba(255, 255, 255, 0.88);
@@ -396,6 +405,9 @@ if selected_tab == "📊 Inventory & Route Analytics":
         st.warning("Inventory is not available. Run `python src/scraper.py` followed by `python src/prepare_data.py`.")
     else:
         frame = pd.read_csv(DATA_FILE)
+        if "departure_display" not in frame.columns:
+            frame["departure_display"] = frame["departure"].map(format_departure_time)
+        display_frame = frame[["operator", "route", "departure_display", "seat_type", "price_inr", "duration"]].rename(columns={"departure_display": "departure"})
         cheapest = frame.loc[frame["price_inr"].idxmin()]
         fastest = int(frame["duration_mins"].min())
         kpis = st.columns(4, gap="small")
@@ -421,7 +433,7 @@ if selected_tab == "📊 Inventory & Route Analytics":
             unsafe_allow_html=True,
         )
         st.dataframe(
-            frame[["operator", "route", "departure", "seat_type", "price_inr", "duration"]],
+            display_frame,
             use_container_width=True,
             hide_index=True,
         )
@@ -444,6 +456,7 @@ else:
     st.markdown(
         '<div class="assistant-card"><h3>🤖 FLEET AI DISPATCHER</h3>'
         '<p>Ask for the cheapest, fastest, or most comfortable bus for any route.</p>'
+        '<div class="assistant-summary"><strong>Results Found:</strong> Inventory-backed route matches will appear here.</div>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -463,9 +476,13 @@ else:
         if query_route:
             if query_route.casefold() != active_route.casefold():
                 query_source, query_destination = query_route.split(" to ", maxsplit=1)
-                with st.spinner(f"Switching inventory to {query_route}..."):
-                    scrape_bus_data(query_source, query_destination)
-                    run_pipeline()
+                try:
+                    with st.spinner(f"Switching inventory to {query_route}..."):
+                        scrape_bus_data(query_source, query_destination)
+                        run_pipeline()
+                except RuntimeError as exc:
+                    st.error(str(exc))
+                    st.stop()
                 st.session_state.route = query_route
                 active_route = query_route
                 st.session_state.chat_history = []
@@ -474,7 +491,10 @@ else:
             st.markdown(question)
         with st.chat_message("assistant"):
             with st.spinner("Searching the inventory..."):
-                answer, count = process_travel_query(question, route=active_route)
+                try:
+                    answer, count = process_travel_query(question, route=active_route)
+                except RuntimeError as exc:
+                    answer, count = f"Live ZuelPay search failed: {exc}", 0
             st.markdown('<div class="answer-card">', unsafe_allow_html=True)
             st.markdown(answer)
             st.markdown("</div>", unsafe_allow_html=True)

@@ -11,7 +11,9 @@ from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_google_genai._common import GoogleGenerativeAIError
 
-from src.scraper import fallback_buses
+from src.prepare_data import format_departure_time
+from src.scraper import fallback_buses, normalize_city
+from src.zuelpay_api import is_configured, search_buses
 from src.vector_store import CLEANED_PATH, hybrid_search
 
 load_dotenv()
@@ -30,32 +32,38 @@ User question: {question}
 
 def extract_route(query: str) -> str | None:
     """Extract a route from either 'from X to Y' or 'Y bus from X' wording."""
+    # Route text ends before any preference or information intent.
+    route_end = r"(?=\s+(?:under|below|less than|within|budget|maximum|with|for|at|by|normal|ordinary|regular|non[\s-]?ac|ac|cheap|cheapest|affordable|best|fastest|quickest|timings?|schedule|operators?|buses?|bus)\b|$)"
     match = re.search(
-        r"\bfrom\s+([a-z][a-z .-]*?)\s+to\s+([a-z][a-z .-]*?)(?=\s+(?:under|below|with|for|at|by|normal|ordinary|regular)\b|$)",
+        rf"\bfrom\s+([a-z][a-z .-]*?)\s+to\s+([a-z][a-z .-]*?){route_end}",
         query,
         re.IGNORECASE,
     )
     if match:
-        return f"{match.group(1).strip().title()} to {match.group(2).strip().title()}"
+        return _format_route(match.group(1), match.group(2))
 
     match = re.search(
-        r"\b(?:(?:cheap|best|affordable|normal|ordinary|regular)\s+)?([a-z]+(?:\s+[a-z]+)?)\s+bus(?:es)?\s+from\s+([a-z][a-z .-]*?)(?=\s+(?:under|below|with|for|at|by|normal|ordinary|regular)\b|$)",
+        rf"\b(?:(?:cheap|best|affordable|normal|ordinary|regular)\s+)?([a-z]+(?:\s+[a-z]+)?)\s+bus(?:es)?\s+from\s+([a-z][a-z .-]*?){route_end}",
         query,
         re.IGNORECASE,
     )
     if match:
         destination = match.group(1).strip().title()
         source = match.group(2).strip().title()
-        return f"{source} to {destination}"
+        return _format_route(source, destination)
 
     match = re.search(
-        r"\b(?:bus(?:es)?\s+)?([a-z]+(?:\s+[a-z]+)?)\s+to\s+([a-z]+(?:\s+[a-z]+)?)(?=\s+(?:under|below|with|for|at|by|normal|ordinary|regular)\b|$)",
+        rf"\b(?:bus(?:es)?\s+)?([a-z]+(?:\s+[a-z]+)?)\s+to\s+([a-z]+(?:\s+[a-z]+)?){route_end}",
         query,
         re.IGNORECASE,
     )
     if match:
-        return f"{match.group(1).strip().title()} to {match.group(2).strip().title()}"
+        return _format_route(match.group(1), match.group(2))
     return None
+
+
+def _format_route(source: str, destination: str) -> str:
+    return f"{normalize_city(source)} to {normalize_city(destination)}"
 
 
 def extract_query_constraints(query: str) -> Dict[str, Any]:
@@ -75,6 +83,16 @@ def extract_query_constraints(query: str) -> Dict[str, Any]:
         filters["ac_bus"] = True
     elif re.search(r"\b(normal|ordinary|regular|government)\s+bus", query, re.IGNORECASE):
         filters["normal_bus"] = True
+    if re.search(r"\b(cheapest|cheapest fare|lowest price|most affordable)\b", query, re.IGNORECASE):
+        filters["intent"] = "cheapest"
+    elif re.search(r"\b(fastest|quickest|shortest travel time)\b", query, re.IGNORECASE):
+        filters["intent"] = "fastest"
+    elif re.search(r"\b(operator|operators|company|companies)\b", query, re.IGNORECASE):
+        filters["intent"] = "operators"
+    elif re.search(r"\b(timing|timings|schedule|departure|departures)\b", query, re.IGNORECASE):
+        filters["intent"] = "timings"
+    elif re.search(r"\b(all buses|every bus|show all|list all)\b", query, re.IGNORECASE):
+        filters["intent"] = "all"
     return filters
 
 
@@ -111,7 +129,7 @@ def _offline_search(
     return [
         Document(
             page_content=(
-                f"Bus Operator: {row.operator}. Route: {row.route}. Departure Time: {row.departure}. "
+                f"Bus Operator: {row.operator}. Route: {row.route}. Departure Time: {format_departure_time(getattr(row, 'departure_display', row.departure))}. "
                 f"Duration: {row.duration}. Seating Category: {row.seat_type}. Ticket Fare: INR {row.price_inr}."
             ),
             metadata={"price_inr": int(row.price_inr)},
@@ -124,7 +142,7 @@ def _offline_response(documents: List[Document], question: str) -> str:
     if not documents:
         return "I could not find a matching bus in the current inventory. Try increasing your budget or broadening the seating preference."
     lines = [f"- {document.page_content}" for document in documents]
-    return "Here are the closest matches for your request:\n" + "\n".join(lines)
+    return "Here are the matching buses from the current inventory:\n" + "\n".join(lines)
 
 
 def process_travel_query(user_query: str, route: str | None = None) -> Tuple[str, int]:
@@ -135,12 +153,43 @@ def process_travel_query(user_query: str, route: str | None = None) -> Tuple[str
         filters["route"] = route
     # Recommendations are intentionally deterministic. This prevents an LLM
     # from inventing a route, fare, operator, or schedule not in the CSV.
-    source, destination = requested_route.split(" to ", maxsplit=1)
+    active_route = requested_route or route
+    if not active_route or " to " not in active_route:
+        documents = _offline_search(user_query, filters, k=4)
+        return _offline_response(documents, user_query), len(documents)
+    source, destination = active_route.split(" to ", maxsplit=1)
+    intent = filters.pop("intent", None)
+    result_limit = 7 if intent in {"all", "cheapest", "fastest", "operators", "timings"} else 4
+    inventory = (
+        search_buses(source, destination)
+        if is_configured()
+        else fallback_buses(source, destination)
+    )
     documents = _offline_search(
         user_query,
         filters,
-        route_inventory=fallback_buses(source, destination),
+        k=result_limit,
+        route_inventory=inventory,
     )
+    if intent in {"cheapest", "fastest"} and documents:
+        def duration_minutes(document: Document) -> int:
+            match = re.search(r"Duration: (\d+)h (\d+)m", document.page_content)
+            return int(match.group(1)) * 60 + int(match.group(2)) if match else 10**9
+
+        documents.sort(
+            key=lambda document: (
+                int(document.metadata["price_inr"]) if intent == "cheapest" else duration_minutes(document)
+            )
+        )
+        documents = documents[:4] if intent == "cheapest" else documents[:1]
+    if intent == "operators" and documents:
+        documents = [
+            Document(
+                page_content=document.page_content.split(". Route:", 1)[0],
+                metadata=document.metadata,
+            )
+            for document in documents
+        ]
     if not documents and filters and not route:
         documents = _offline_search(user_query, {}, k=4)
     return _offline_response(documents, user_query), len(documents)

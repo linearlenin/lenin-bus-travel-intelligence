@@ -6,6 +6,8 @@ import os
 import zlib
 from typing import Dict, List, Tuple
 
+from src.zuelpay_api import is_configured, search_buses
+
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 CSV_PATH = os.path.join(DATA_DIR, "bus_raw.csv")
 
@@ -23,6 +25,20 @@ CITY_COORDINATES: Dict[str, Tuple[float, float]] = {
     "goa": (15.49, 73.83), "vijayawada": (16.51, 80.65),
 }
 
+CITY_ALIASES = {
+    "bengaluru": "Bangalore",
+    "bombay": "Mumbai",
+    "new delhi": "Delhi",
+    "tiruchirappalli": "Trichy",
+    "namakal": "Namakkal",
+}
+
+
+def normalize_city(city: str) -> str:
+    """Return a stable display name while accepting common Indian city aliases."""
+    cleaned = " ".join(city.strip().split())
+    return CITY_ALIASES.get(cleaned.casefold(), cleaned.title())
+
 
 def _road_distance_km(source: str, destination: str) -> int:
     start = CITY_COORDINATES.get(source.casefold())
@@ -36,6 +52,8 @@ def _road_distance_km(source: str, destination: str) -> int:
 
 
 def fallback_buses(source: str, destination: str) -> List[Dict[str, str]]:
+    source = normalize_city(source)
+    destination = normalize_city(destination)
     route = f"{source} to {destination}"
     if source.casefold() == "chennai" and destination.casefold() in {"bangalore", "bengaluru"}:
         return [
@@ -69,9 +87,14 @@ def fallback_buses(source: str, destination: str) -> List[Dict[str, str]]:
     seats = [seat_pool[(index + route_seed) % len(seat_pool)] for index in range(7)]
     rates = [2.0, 1.7, 1.35, 2.5, 1.1, 1.85, 2.2]
     prices = [max(250, int(distance * rate / 10) * 10) for rate in rates]
-    departure_pool = ["05:45", "07:30", "10:15", "18:20", "20:45", "22:10", "23:35"]
-    departure_offset = route_seed % len(departure_pool)
-    departures = [departure_pool[(index + departure_offset) % len(departure_pool)] for index in range(7)]
+    # Derive a different, stable schedule for every route instead of reusing
+    # the same seven template times across all city pairs.
+    departure_start = 4 * 60 + (route_seed % (19 * 60))
+    departures = [
+        f"{((departure_start + index * (97 + (route_seed % 29))) // 60) % 24:02d}:"
+        f"{(departure_start + index * (97 + (route_seed % 29))) % 60:02d}"
+        for index in range(7)
+    ]
     rows = []
     for index in range(7):
         minutes = int((base_hours + ((route_seed >> (index % 8)) % 5) * 0.18) * 60)
@@ -89,9 +112,9 @@ def fallback_buses(source: str, destination: str) -> List[Dict[str, str]]:
 
 
 def scrape_bus_data(source: str = "Chennai", destination: str = "Bangalore") -> int:
-    """Create route-aware demo inventory without requiring a browser runtime."""
+    """Fetch live inventory when ZuelPay is configured, otherwise use local demo data."""
     os.makedirs(DATA_DIR, exist_ok=True)
-    dataset = fallback_buses(source, destination)
+    dataset = search_buses(source, destination) if is_configured() else fallback_buses(source, destination)
     with open(CSV_PATH, "w", newline="", encoding="utf-8") as output:
         writer = csv.DictWriter(output, fieldnames=list(dataset[0]))
         writer.writeheader()

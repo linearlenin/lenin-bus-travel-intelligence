@@ -7,6 +7,8 @@ import pandas as pd
 from dotenv import load_dotenv
 from langchain_core.documents import Document
 
+from src.prepare_data import format_departure_time
+
 load_dotenv()
 
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
@@ -27,11 +29,12 @@ def get_embedding_model():
 def _documents_from_frame(frame: pd.DataFrame) -> List[Document]:
     documents = []
     for _, row in frame.iterrows():
+        departure_label = row["departure_display"] if "departure_display" in row.index else format_departure_time(row["departure"])
         documents.append(
             Document(
                 page_content=(
                     f"Bus Operator: {row['operator']}. Route: {row['route']}. "
-                    f"Departure Time: {row['departure']}. Duration: {row['duration']} "
+                    f"Departure Time: {departure_label}. Duration: {row['duration']} "
                     f"({row['duration_mins']} mins). Seating Category: {row['seat_type']}. "
                     f"Ticket Fare: INR {row['price_inr']}."
                 ),
