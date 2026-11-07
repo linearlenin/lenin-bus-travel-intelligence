@@ -24,8 +24,16 @@ from src.time_format import format_departure_time
 
 DATA_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "bus_cleaned.csv"))
 
+
+def _format_assistant_times(content: str) -> str:
+    return re.sub(
+        r"(?i)(departure time:\s*)(\d{1,2}:\d{2})",
+        lambda match: f"{match.group(1)}{format_departure_time(match.group(2))}",
+        content,
+    )
+
 st.set_page_config(page_title="Intercity Bus Intelligence", page_icon="🚌", layout="wide")
-st.caption("Build: route-aware-v5-am-pm")
+st.caption("Build: route-aware-v6-am-pm")
 st.markdown(
     """
     <style>
@@ -482,11 +490,7 @@ else:
         with st.chat_message(message["role"]):
             content = message["content"]
             if message["role"] == "assistant":
-                content = re.sub(
-                    r"(?i)(departure time:\s*)(\d{1,2}:\d{2})",
-                    lambda match: f"{match.group(1)}{format_departure_time(match.group(2))}",
-                    content,
-                )
+                content = _format_assistant_times(content)
             st.markdown(content)
     if question := st.chat_input("Enter your travel requirements..."):
         query_route = extract_route(question)
@@ -512,6 +516,7 @@ else:
                     answer, count = process_travel_query(question, route=active_route)
                 except RuntimeError as exc:
                     answer, count = f"Live ZuelPay search failed: {exc}", 0
+            answer = _format_assistant_times(answer)
             st.markdown('<div class="answer-card">', unsafe_allow_html=True)
             st.markdown(answer)
             st.markdown("</div>", unsafe_allow_html=True)
