@@ -16,8 +16,9 @@ except Exception:  # pragma: no cover - runtime fallback for minimal deployments
     def process_travel_query(user_query: str, route: str | None = None):
         return "AI assistant is unavailable in this deployment. Using the offline bus inventory only.", 0
 
-from src.prepare_data import format_departure_time, run_pipeline
+from src.prepare_data import run_pipeline
 from src.scraper import scrape_bus_data
+from src.time_format import format_departure_time
 
 
 DATA_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "bus_cleaned.csv"))

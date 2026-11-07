@@ -5,6 +5,8 @@ import re
 
 import pandas as pd
 
+from src.time_format import format_departure_time
+
 
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 RAW_PATH = os.path.join(DATA_DIR, "bus_raw.csv")
@@ -29,36 +31,6 @@ def _parse_duration(value: object) -> int:
     hours = re.search(r"(\d+)\s*h", str(value), re.IGNORECASE)
     minutes = re.search(r"(\d+)\s*m", str(value), re.IGNORECASE)
     return (int(hours.group(1)) * 60 if hours else 0) + (int(minutes.group(1)) if minutes else 0)
-
-
-def format_departure_time(value: object) -> str:
-    """Convert 24-hour departure strings such as 23:45 to 11:45 PM."""
-    if value is None:
-        return ""
-    text = str(value).strip()
-    if not text:
-        return ""
-
-    match = re.fullmatch(r"(?i)(\d{1,2}):(\d{2})\s*(am|pm)?", text)
-    if not match:
-        return text
-
-    hour = int(match.group(1))
-    minute = int(match.group(2))
-    if not 0 <= hour <= 23 or not 0 <= minute <= 59:
-        return text
-
-    suffix = match.group(3).upper() if match.group(3) else ""
-    if suffix:
-        if suffix == "AM" and hour == 12:
-            hour = 0
-        elif suffix == "PM" and hour != 12:
-            hour += 12
-    else:
-        suffix = "AM" if hour < 12 else "PM"
-
-    display_hour = 12 if hour % 12 == 0 else hour % 12
-    return f"{display_hour}:{minute:02d} {suffix}"
 
 
 def run_pipeline() -> int:

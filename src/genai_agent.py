@@ -27,8 +27,8 @@ except ImportError:  # pragma: no cover - optional AI dependencies may be absent
     ChatGoogleGenerativeAI = None
     GoogleGenerativeAIError = Exception
 
-from src.prepare_data import format_departure_time
 from src.scraper import fallback_buses, normalize_city
+from src.time_format import format_departure_time
 from src.zuelpay_api import is_configured, search_buses
 from src.vector_store import CLEANED_PATH, hybrid_search
 

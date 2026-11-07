@@ -19,7 +19,7 @@ except ImportError:  # pragma: no cover - optional AI dependencies may be absent
             self.page_content = page_content
             self.metadata = metadata or {}
 
-from src.prepare_data import format_departure_time
+from src.time_format import format_departure_time
 
 load_dotenv()
 
