@@ -194,9 +194,9 @@ responses into:
 ```
 
 The parser accepts common provider field names and rejects responses that do
-not contain recognizable bus records. Network, timeout, invalid JSON, and API
-errors are surfaced to the Streamlit UI instead of being silently converted to
-fake live results.
+not contain recognizable bus records. If the live request fails, the app
+clearly labels its route-aware demo fallback and warns that it is not live
+availability.
 
 ### 2. `src/scraper.py`
 
@@ -207,7 +207,8 @@ fake live results.
 3. Normalizes the live operator, route, departure, duration, seat type, and fare
    fields.
 4. Writes `data/bus_raw.csv`.
-5. Uses route-aware demo inventory only when ZuelPay credentials are absent.
+5. Uses clearly labelled route-aware demo inventory when credentials are absent
+   or live search fails.
 
 The fallback generator estimates road distance using known Indian city
 coordinates and uses route-seeded operators, fares, and schedules. It is for
@@ -292,8 +293,8 @@ http://localhost:8501
 4. The route-specific ZuelPay search and ETL pipeline runs. The current
    integration sends today's date unless a travel date is supplied directly to
    the API client.
-5. The live inventory refreshes; the documented demo fallback is used only
-   without ZuelPay credentials.
+5. Live results refresh when available; otherwise a warning identifies the
+   displayed inventory as demo estimates.
 6. The analytics tab displays route metrics and inventory.
 7. The assistant tab accepts budget and comfort requirements.
 
@@ -348,10 +349,9 @@ can be added as a follow-up UI feature.
 
 ### Why keep a fallback inventory?
 
-The project remains usable for local development and UI work when ZuelPay
-credentials are unavailable. Fallback records are explicitly demo data; they
-are not presented as live booking availability when the live integration is
-configured.
+The project remains usable for development and UI work when ZuelPay credentials
+are unavailable or live search fails. Fallback records are explicitly labelled
+as demo data and are not presented as live booking availability.
 
 ### Why use both metadata and vectors?
 
@@ -401,8 +401,10 @@ Check the following:
 - The source, destination, and travel date are accepted by ZuelPay.
 - The provider account has access to `/travel/bus/searchBus`.
 
-The application intentionally shows this error instead of mixing failed live
-results with generated demo records.
+When live search is unavailable, the assistant continues with clearly labelled
+route-aware demo estimates and explicitly warns that they are not live
+availability. Verify the ZuelPay endpoint, HTTP method, account access, and
+credentials with the provider before relying on live inventory.
 
 ## ZuelPay API scope
 

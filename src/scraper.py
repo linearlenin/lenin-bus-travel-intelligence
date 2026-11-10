@@ -111,17 +111,33 @@ def fallback_buses(source: str, destination: str) -> List[Dict[str, str]]:
     return rows
 
 
-def scrape_bus_data(source: str = "Chennai", destination: str = "Bangalore") -> int:
-    """Fetch live inventory when ZuelPay is configured, otherwise use local demo data."""
+def get_route_buses(source: str, destination: str) -> Tuple[List[Dict[str, str]], str | None]:
+    """Return live buses, or clearly identify route-aware demo data when live search fails."""
+    if not is_configured():
+        return fallback_buses(source, destination), (
+            "ZuelPay is not configured. Showing demo estimates, not live bus availability."
+        )
+    try:
+        return search_buses(source, destination), None
+    except RuntimeError as exc:
+        return fallback_buses(source, destination), (
+            f"ZuelPay live search failed ({exc}). Showing demo estimates, not live bus availability."
+        )
+
+
+def scrape_bus_data(source: str = "Chennai", destination: str = "Bangalore") -> Tuple[int, str | None]:
+    """Fetch route inventory and persist it, reporting when demo data is used."""
     os.makedirs(DATA_DIR, exist_ok=True)
-    dataset = search_buses(source, destination) if is_configured() else fallback_buses(source, destination)
+    dataset, warning = get_route_buses(source, destination)
     with open(CSV_PATH, "w", newline="", encoding="utf-8") as output:
         writer = csv.DictWriter(output, fieldnames=list(dataset[0]))
         writer.writeheader()
         writer.writerows(dataset)
     print(f"Scraper complete: {len(dataset)} records stored at {CSV_PATH}")
-    return len(dataset)
+    return len(dataset), warning
 
 
 if __name__ == "__main__":
-    scrape_bus_data()
+    count, warning = scrape_bus_data()
+    if warning:
+        print(warning)

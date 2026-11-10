@@ -403,11 +403,13 @@ if refresh_route:
     else:
         route = f"{source} to {destination}"
         with st.spinner(f"Finding buses from {source} to {destination}..."):
-            scrape_bus_data(source, destination)
+            _, inventory_warning = scrape_bus_data(source, destination)
             run_pipeline()
         st.session_state.route = route
         st.session_state.chat_history = []
         st.success(f"Route loaded: {route}")
+        if inventory_warning:
+            st.warning(inventory_warning)
 
 active_route = st.session_state.get("route", "Chennai to Bangalore")
 

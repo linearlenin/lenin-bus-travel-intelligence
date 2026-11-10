@@ -27,9 +27,8 @@ except ImportError:  # pragma: no cover - optional AI dependencies may be absent
     ChatGoogleGenerativeAI = None
     GoogleGenerativeAIError = Exception
 
-from src.scraper import fallback_buses, normalize_city
+from src.scraper import get_route_buses, normalize_city
 from src.time_format import format_departure_time
-from src.zuelpay_api import is_configured, search_buses
 from src.vector_store import CLEANED_PATH, hybrid_search
 
 load_dotenv()
@@ -176,11 +175,7 @@ def process_travel_query(user_query: str, route: str | None = None) -> Tuple[str
     source, destination = active_route.split(" to ", maxsplit=1)
     intent = filters.pop("intent", None)
     result_limit = 7 if intent in {"all", "cheapest", "fastest", "operators", "timings"} else 4
-    inventory = (
-        search_buses(source, destination)
-        if is_configured()
-        else fallback_buses(source, destination)
-    )
+    inventory, inventory_warning = get_route_buses(source, destination)
     documents = _offline_search(
         user_query,
         filters,
@@ -208,4 +203,7 @@ def process_travel_query(user_query: str, route: str | None = None) -> Tuple[str
         ]
     if not documents and filters and not route:
         documents = _offline_search(user_query, {}, k=4)
-    return _offline_response(documents, user_query), len(documents)
+    answer = _offline_response(documents, user_query)
+    if inventory_warning:
+        answer = f"⚠️ {inventory_warning}\n\n{answer}"
+    return answer, len(documents)
