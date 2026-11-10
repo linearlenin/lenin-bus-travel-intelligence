@@ -27,7 +27,7 @@ DATA_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"
 
 def _format_assistant_times(content: str) -> str:
     return re.sub(
-        r"(?i)(departure time:\s*)(\d{1,2}:\d{2})",
+        r"(?i)(departure time:\s*)(\d{1,2}:\d{2}(?:\s*(?:am|pm))?)",
         lambda match: f"{match.group(1)}{format_departure_time(match.group(2))}",
         content,
     )
